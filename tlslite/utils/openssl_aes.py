@@ -7,10 +7,12 @@ from .cryptomath import *
 from .aes import *
 
 if m2cryptoLoaded:
+
     def new(key, mode, IV):
         return OpenSSL_AES(key, mode, IV)
 
     class OpenSSL_AES(AES):
+
         def __init__(self, key, mode, IV):
             AES.__init__(self, key, mode, IV, "openssl")
             self.key = key

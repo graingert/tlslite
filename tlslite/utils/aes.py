@@ -3,7 +3,6 @@
 
 """Abstract class for AES."""
 
-
 class AES(object):
     def __init__(self, key, mode, IV, implementation):
         if len(key) not in (16, 24, 32):

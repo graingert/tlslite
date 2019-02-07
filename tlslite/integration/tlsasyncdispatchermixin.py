@@ -1,4 +1,4 @@
-# Authors:
+# Authors: 
 #   Trevor Perrin
 #   Martin von Loewis - python 3 port
 #
@@ -77,6 +77,7 @@ class TLSAsyncDispatcherMixIn(AsyncStateMachine):
     and removes this instance from the asyncore loop.
 
     """
+
 
     def __init__(self, sock=None):
         AsyncStateMachine.__init__(self)

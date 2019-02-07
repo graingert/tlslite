@@ -1,4 +1,4 @@
-# Authors:
+# Authors: 
 #   Trevor Perrin
 #   Google - handling CertificateRequest.certificate_types
 #   Google (adapted by Sam Rushing and Marcelo Fernandez) - NPN support
@@ -16,7 +16,6 @@ from .constants import *
 from .x509 import X509
 from .x509certchain import X509CertChain
 from .utils.tackwrapper import *
-
 
 class RecordHeader3(object):
     def __init__(self):
@@ -45,7 +44,6 @@ class RecordHeader3(object):
         self.length = p.get(2)
         self.ssl2 = False
         return self
-
 
 class RecordHeader2(object):
     def __init__(self):
@@ -93,13 +91,12 @@ class HandshakeMsg(object):
     def __init__(self, handshakeType):
         self.contentType = ContentType.handshake
         self.handshakeType = handshakeType
-
+    
     def postWrite(self, w):
         headerWriter = Writer()
         headerWriter.add(self.handshakeType, 1)
         headerWriter.add(len(w.bytes), 3)
         return headerWriter.bytes + w.bytes
-
 
 class ClientHello(HandshakeMsg):
     def __init__(self, ssl2=False):
@@ -216,9 +213,9 @@ class ClientHello(HandshakeMsg):
         if self.server_name:
             w2.add(ExtensionType.server_name, 2)
             w2.add(len(self.server_name)+5, 2)
-            w2.add(len(self.server_name)+3, 2)
+            w2.add(len(self.server_name)+3, 2)            
             w2.add(NameType.host_name, 1)
-            w2.addVarSeq(self.server_name, 1, 2)
+            w2.addVarSeq(self.server_name, 1, 2) 
         if self.tack:
             w2.add(ExtensionType.tack, 2)
             w2.add(0, 2)
@@ -227,14 +224,12 @@ class ClientHello(HandshakeMsg):
             w.bytes += w2.bytes
         return self.postWrite(w)
 
-
 class BadNextProtos(Exception):
     def __init__(self, l):
         self.length = l
 
     def __str__(self):
         return 'Cannot encode a list of next protocols because it contains an element with invalid length %d. Element lengths must be 0 < x < 256' % self.length
-
 
 class ServerHello(HandshakeMsg):
     def __init__(self):
@@ -336,7 +331,7 @@ class ServerHello(HandshakeMsg):
             w2.addFixSeq(encoded_next_protos_advertised, 1)
         if len(w2.bytes):
             w.add(len(w2.bytes), 2)
-            w.bytes += w2.bytes
+            w.bytes += w2.bytes        
         return self.postWrite(w)
 
 
@@ -391,7 +386,6 @@ class Certificate(HandshakeMsg):
             raise AssertionError()
         return self.postWrite(w)
 
-
 class CertificateRequest(HandshakeMsg):
     def __init__(self):
         HandshakeMsg.__init__(self, HandshakeType.certificate_request)
@@ -412,9 +406,9 @@ class CertificateRequest(HandshakeMsg):
         index = 0
         self.certificate_authorities = []
         while index != ca_list_length:
-            ca_bytes = p.getVarBytes(2)
-            self.certificate_authorities.append(ca_bytes)
-            index += len(ca_bytes)+2
+          ca_bytes = p.getVarBytes(2)
+          self.certificate_authorities.append(ca_bytes)
+          index += len(ca_bytes)+2
         p.stopLengthCheck()
         return self
 
@@ -430,7 +424,6 @@ class CertificateRequest(HandshakeMsg):
         for ca_dn in self.certificate_authorities:
             w.addVarSeq(ca_dn, 1, 2)
         return self.postWrite(w)
-
 
 class ServerKeyExchange(HandshakeMsg):
     def __init__(self, cipherSuite):
@@ -452,7 +445,7 @@ class ServerKeyExchange(HandshakeMsg):
         self.srp_s = srp_s
         self.srp_B = srp_B
         return self
-
+    
     def createDH(self, dh_p, dh_g, dh_Ys):
         self.dh_p = dh_p
         self.dh_g = dh_g
@@ -501,7 +494,6 @@ class ServerKeyExchange(HandshakeMsg):
         finally:
             self.cipherSuite = oldCipherSuite
 
-
 class ServerHelloDone(HandshakeMsg):
     def __init__(self):
         HandshakeMsg.__init__(self, HandshakeType.server_hello_done)
@@ -518,7 +510,6 @@ class ServerHelloDone(HandshakeMsg):
         w = Writer()
         return self.postWrite(w)
 
-
 class ClientKeyExchange(HandshakeMsg):
     def __init__(self, cipherSuite, version=None):
         HandshakeMsg.__init__(self, HandshakeType.client_key_exchange)
@@ -534,11 +525,11 @@ class ClientKeyExchange(HandshakeMsg):
     def createRSA(self, encryptedPreMasterSecret):
         self.encryptedPreMasterSecret = encryptedPreMasterSecret
         return self
-
+    
     def createDH(self, dh_Yc):
         self.dh_Yc = dh_Yc
         return self
-
+    
     def parse(self, p):
         p.startLengthCheck(3)
         if self.cipherSuite in CipherSuite.srpAllSuites:
@@ -552,7 +543,7 @@ class ClientKeyExchange(HandshakeMsg):
             else:
                 raise AssertionError()
         elif self.cipherSuite in CipherSuite.anonSuites:
-            self.dh_Yc = bytesToNumber(p.getVarBytes(2))
+            self.dh_Yc = bytesToNumber(p.getVarBytes(2))            
         else:
             raise AssertionError()
         p.stopLengthCheck()
@@ -570,11 +561,10 @@ class ClientKeyExchange(HandshakeMsg):
             else:
                 raise AssertionError()
         elif self.cipherSuite in CipherSuite.anonSuites:
-            w.addVarSeq(numberToByteArray(self.dh_Yc), 1, 2)
+            w.addVarSeq(numberToByteArray(self.dh_Yc), 1, 2)            
         else:
             raise AssertionError()
         return self.postWrite(w)
-
 
 class CertificateVerify(HandshakeMsg):
     def __init__(self):
@@ -595,7 +585,6 @@ class CertificateVerify(HandshakeMsg):
         w = Writer()
         w.addVarSeq(self.signature, 1, 2)
         return self.postWrite(w)
-
 
 class ChangeCipherSpec(object):
     def __init__(self):
@@ -641,7 +630,6 @@ class NextProtocol(HandshakeMsg):
         w.addVarSeq(bytearray(paddingLen), 1, 1)
         return self.postWrite(w)
 
-
 class Finished(HandshakeMsg):
     def __init__(self, version):
         HandshakeMsg.__init__(self, HandshakeType.finished)
@@ -668,7 +656,6 @@ class Finished(HandshakeMsg):
         w.addFixSeq(self.verify_data, 1)
         return self.postWrite(w)
 
-
 class ApplicationData(object):
     def __init__(self):
         self.contentType = ContentType.application_data
@@ -677,7 +664,7 @@ class ApplicationData(object):
     def create(self, bytes):
         self.bytes = bytes
         return self
-
+        
     def splitFirstByte(self):
         newMsg = ApplicationData().create(self.bytes[:1])
         self.bytes = self.bytes[1:]

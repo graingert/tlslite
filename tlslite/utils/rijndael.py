@@ -65,8 +65,6 @@ for i in range(1, 255):
     log[alog[i]] = i
 
 # multiply two elements of GF(2^m)
-
-
 def mul(a, b):
     if a == 0 or b == 0:
         return 0
@@ -137,7 +135,6 @@ for i in range(4):
     for j in range(4):
         iG[i][j] = AA[i][j + 4]
 
-
 def mul4(a, bs):
     if a == 0:
         return 0
@@ -204,9 +201,8 @@ del mul4
 del cox
 del iG
 
-
 class rijndael:
-    def __init__(self, key, block_size=16):
+    def __init__(self, key, block_size = 16):
         if block_size != 16 and block_size != 24 and block_size != 32:
             raise ValueError('Invalid block size: ' + str(block_size))
         if len(key) != 16 and len(key) != 24 and len(key) != 32:
@@ -364,14 +360,11 @@ class rijndael:
             result.append((Si[ t[(i + s3) % BC]        & 0xFF] ^  tt       ) & 0xFF)
         return bytearray(result)
 
-
 def encrypt(key, block):
     return rijndael(key, len(block)).encrypt(block)
 
-
 def decrypt(key, block):
     return rijndael(key, len(block)).decrypt(block)
-
 
 def test():
     def t(kl, bl):
@@ -387,3 +380,4 @@ def test():
     t(32, 16)
     t(32, 24)
     t(32, 32)
+

@@ -1,4 +1,4 @@
-# Authors:
+# Authors: 
 #   Trevor Perrin
 #   Martin von Loewis - python 3 port
 #
@@ -8,7 +8,6 @@
 
 import threading
 import time
-
 
 class SessionCache(object):
     """This class is used by the server to cache TLS sessions.
@@ -68,6 +67,7 @@ class SessionCache(object):
         finally:
             self.lock.release()
 
+
     def __setitem__(self, sessionID, session):
         self.lock.acquire()
         try:
@@ -100,7 +100,6 @@ class SessionCache(object):
             else:
                 break
         self.firstIndex = index
-
 
 def _test():
     import doctest

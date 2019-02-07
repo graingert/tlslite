@@ -19,7 +19,7 @@ class Checker(object):
     Currently, the Checker can check an X.509 chain.
     """
 
-    def __init__(self,
+    def __init__(self, 
                  x509Fingerprint=None,
                  checkResumedSession=False):
         """Create a new Checker instance.

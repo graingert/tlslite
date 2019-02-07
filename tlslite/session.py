@@ -1,4 +1,4 @@
-# Authors:
+# Authors: 
 #   Trevor Perrin
 #   Dave Baggett (Arcode Corporation) - canonicalCipherName
 #
@@ -9,7 +9,6 @@
 from .utils.compat import *
 from .mathtls import *
 from .constants import *
-
 
 class Session(object):
     """
@@ -58,7 +57,7 @@ class Session(object):
         self.resumable = False
 
     def create(self, masterSecret, sessionID, cipherSuite,
-            srpUsername, clientCertChain, serverCertChain,
+            srpUsername, clientCertChain, serverCertChain, 
             tackExt, tackInHelloExt, serverName, resumable=True):
         self.masterSecret = masterSecret
         self.sessionID = sessionID
@@ -67,7 +66,7 @@ class Session(object):
         self.clientCertChain = clientCertChain
         self.serverCertChain = serverCertChain
         self.tackExt = tackExt
-        self.tackInHelloExt = tackInHelloExt
+        self.tackInHelloExt = tackInHelloExt  
         self.serverName = serverName
         self.resumable = resumable
 
@@ -103,7 +102,7 @@ class Session(object):
             return self.tackExt.tack.getTackId()
         else:
             return None
-
+        
     def getBreakSigs(self):
         if self.tackExt and self.tackExt.break_sigs:
             return self.tackExt.break_sigs
@@ -117,7 +116,7 @@ class Session(object):
         @return: The name of the cipher used with this connection.
         """
         return CipherSuite.canonicalCipherName(self.cipherSuite)
-
+        
     def getMacName(self):
         """Get the name of the HMAC hash algo used with this connection.
 

@@ -7,17 +7,18 @@ import sys
 import binascii
 
 if sys.version_info >= (3,0):
+
     def compat26Str(x): return x
-
-    # Python 3 requires bytes instead of bytearrays for HMAC
-
+    
+    # Python 3 requires bytes instead of bytearrays for HMAC   
+    
     # So, python 2.6 requires strings, python 3 requires 'bytes',
-    # and python 2.7 can handle bytearrays...
+    # and python 2.7 can handle bytearrays...     
     def compatHMAC(x): return bytes(x)
-
+    
     def raw_input(s):
         return input(s)
-
+    
     # So, the python3 binascii module deals with bytearrays, and python2
     # deals with strings...  I would rather deal with the "a" part as
     # strings, and the "b" part as bytearrays, regardless of python version,
@@ -26,8 +27,8 @@ if sys.version_info >= (3,0):
         try:
             b = bytearray(binascii.a2b_hex(bytearray(s, "ascii")))
         except Exception as e:
-            raise SyntaxError("base16 error: %s" % e)
-        return b
+            raise SyntaxError("base16 error: %s" % e) 
+        return b  
 
     def a2b_base64(s):
         try:
@@ -37,16 +38,16 @@ if sys.version_info >= (3,0):
         return b
 
     def b2a_hex(b):
-        return binascii.b2a_hex(b).decode("ascii")
-
+        return binascii.b2a_hex(b).decode("ascii")    
+            
     def b2a_base64(b):
-        return binascii.b2a_base64(b).decode("ascii")
+        return binascii.b2a_base64(b).decode("ascii") 
 
     def b2a_base32(b):
         return base64.b32encode(b).decode("ascii")
-
+        
     def readStdinBinary():
-        return sys.stdin.buffer.read()
+        return sys.stdin.buffer.read()        
 
 else:
     # Python 2.6 requires strings instead of bytearrays in a couple places,
@@ -57,7 +58,7 @@ else:
         def compat26Str(x): return x
 
     # So, python 2.6 requires strings, python 3 requires 'bytes',
-    # and python 2.7 can handle bytearrays...
+    # and python 2.7 can handle bytearrays...     
     def compatHMAC(x): return compat26Str(x)
 
     def a2b_hex(s):
@@ -73,19 +74,18 @@ else:
         except Exception as e:
             raise SyntaxError("base64 error: %s" % e)
         return b
-
+        
     def b2a_hex(b):
         return binascii.b2a_hex(compat26Str(b))
-
+        
     def b2a_base64(b):
         return binascii.b2a_base64(compat26Str(b))
-
+        
     def b2a_base32(b):
         return base64.b32encode(str(b))
 
 import traceback
-
-
 def formatExceptionTrace(e):
     newStr = "".join(traceback.format_exception(sys.exc_type, sys.exc_value, sys.exc_traceback))
     return newStr
+

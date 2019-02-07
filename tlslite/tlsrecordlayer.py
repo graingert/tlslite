@@ -1,4 +1,4 @@
-# Authors:
+# Authors: 
 #   Trevor Perrin
 #   Google (adapted by Sam Rushing) - NPN support
 #   Martin von Loewis - python 3 port
@@ -152,6 +152,7 @@ class TLSRecordLayer(object):
     def clearWriteBuffer(self):
         self._send_writer = None
 
+
     #*********************************************************
     # Public Functions START
     #*********************************************************
@@ -275,7 +276,7 @@ class TLSRecordLayer(object):
                     break
                 if endIndex > len(s):
                     endIndex = len(s)
-                block = bytearray(s[startIndex: endIndex])
+                block = bytearray(s[startIndex : endIndex])
                 applicationData = ApplicationData().create(block)
                 for result in self._sendMsg(applicationData, \
                                             randomizeFirstBlock):
@@ -341,7 +342,7 @@ class TLSRecordLayer(object):
                     yield result
                 alert = None
                 # By default close the socket, since it's been observed
-                # that some other libraries will not respond to the
+                # that some other libraries will not respond to the 
                 # close_notify alert, thus leaving us hanging if we're
                 # expecting it
                 if self.closeSocket:
@@ -382,7 +383,7 @@ class TLSRecordLayer(object):
             return "TLS 1.1"
         else:
             return None
-
+        
     def getCipherName(self):
         """Get the name of the cipher used with this connection.
 
@@ -405,13 +406,13 @@ class TLSRecordLayer(object):
         if not self._writeState.encContext:
             return None
         return self._writeState.encContext.implementation
-
     def __str__(self):
         return 'SSL({0}, {1}/{2})'.format(
             self.getVersionName(),
             self.getCipherImplementation(),
             self.getCipherName()
         )
+
 
     #Emulate a socket, somewhat -
     def send(self, s):
@@ -460,7 +461,7 @@ class TLSRecordLayer(object):
         # class, so that when fileobject.close() gets called, it will
         # close() us, causing the refcount to be decremented (decrefAsync).
         #
-        # If this is the last close() on the outstanding fileobjects /
+        # If this is the last close() on the outstanding fileobjects / 
         # TLSConnection, then the "actual" close alerts will be sent,
         # socket closed, etc.
         if sys.version_info < (3,):
@@ -494,14 +495,15 @@ class TLSRecordLayer(object):
     def shutdown(self, how):
         """Shutdown the underlying socket."""
         return self.sock.shutdown(how)
-
+    	
     def fileno(self):
         """Not implement in TLS Lite."""
         raise NotImplementedError()
+    	
 
-    # *********************************************************
-    # Public Functions END
-    # *********************************************************
+     #*********************************************************
+     # Public Functions END
+     #*********************************************************
 
     def _shutdown(self, resumable):
         self._writeState = _ConnectionState()
@@ -515,6 +517,7 @@ class TLSRecordLayer(object):
         #Even if resumable is False, we'll never toggle this on
         if not resumable and self.session:
             self.session.resumable = False
+
 
     def _sendError(self, alertDescription, errorStr=None):
         alert = Alert().create(alertDescription, AlertLevel.fatal)
@@ -530,7 +533,7 @@ class TLSRecordLayer(object):
                 yield result
             randomizeFirstBlock = True
 
-    def _sendMsg(self, msg, randomizeFirstBlock=True):
+    def _sendMsg(self, msg, randomizeFirstBlock = True):
         #Whenever we're connected and asked to send an app data message,
         #we first send the first byte of the message.  This prevents
         #an attacker from launching a chosen-plaintext attack based on
@@ -541,16 +544,16 @@ class TLSRecordLayer(object):
                 and isinstance(msg, ApplicationData):
             msgFirstByte = msg.splitFirstByte()
             for result in self._sendMsg(msgFirstByte,
-                                       randomizeFirstBlock=False):
-                yield result
+                                       randomizeFirstBlock = False):
+                yield result                                            
 
         b = msg.write()
-
-        # If a 1-byte message was passed in, and we "split" the
+        
+        # If a 1-byte message was passed in, and we "split" the 
         # first(only) byte off above, we may have a 0-length msg:
         if len(b) == 0:
             return
-
+            
         contentType = msg.contentType
 
         #Update handshake hashes
@@ -583,6 +586,7 @@ class TLSRecordLayer(object):
         if self._writeState.encContext:
             #Add padding and encrypt (for Block Cipher):
             if self._writeState.encContext.isBlockCipher:
+
                 #Add TLS 1.1 fixed block
                 if self.version == (3,2):
                     b = self.fixedIVBlock + b
@@ -624,20 +628,21 @@ class TLSRecordLayer(object):
                     # upon the error.
                     #
                     # However, if we get here DURING handshaking, we take
-                    # it upon ourselves to see if the next message is an
+                    # it upon ourselves to see if the next message is an 
                     # Alert.
                     if contentType == ContentType.handshake:
+                        
                         # See if there's an alert record
                         # Could raise socket.error or TLSAbruptCloseError
                         for result in self._getNextRecord():
                             if result in (0,1):
                                 yield result
-
+                                
                         # Closes the socket
                         self._shutdown(False)
-
-                        # If we got an alert, raise it
-                        recordHeader, p = result
+                        
+                        # If we got an alert, raise it        
+                        recordHeader, p = result                        
                         if recordHeader.type == ContentType.alert:
                             alert = Alert().parse(p)
                             raise TLSRemoteAlert(alert)
@@ -650,6 +655,7 @@ class TLSRecordLayer(object):
                 return
             s = s[bytesSent:]
             yield 1
+
 
     def _getMsg(self, expectedType, secondaryType=None, constructorType=None):
         try:
@@ -674,6 +680,7 @@ class TLSRecordLayer(object):
 
                 #If we received an unexpected record type...
                 if recordHeader.type not in expectedType:
+
                     #If we received an alert...
                     if recordHeader.type == ContentType.alert:
                         alert = Alert().parse(p)
@@ -807,8 +814,10 @@ class TLSRecordLayer(object):
                                          formatExceptionTrace(e)):
                 yield result
 
+
     #Returns next record or next handshake message
     def _getNextRecord(self):
+
         #If there's a handshake message waiting, return it
         if self._handshakeBuffer:
             recordHeader, b = self._handshakeBuffer[0]
@@ -931,7 +940,7 @@ class TLSRecordLayer(object):
                             "A record has a partial handshake message (2)"):
                         yield result
 
-                handshakePair = (r, b[p.index-4: p.index+msgLength])
+                handshakePair = (r, b[p.index-4 : p.index+msgLength])
                 self._handshakeBuffer.append(handshakePair)
                 p.index += msgLength
 
@@ -941,8 +950,10 @@ class TLSRecordLayer(object):
             self._handshakeBuffer = self._handshakeBuffer[1:]
             yield (recordHeader, Parser(b))
 
+
     def _decryptRecord(self, recordType, b):
         if self._readState.encContext:
+
             #Decrypt if it's a block cipher
             if self._readState.encContext.isBlockCipher:
                 blockLength = self._readState.encContext.block_size
@@ -1056,10 +1067,10 @@ class TLSRecordLayer(object):
             createCipherFunc = createTripleDES
         else:
             raise AssertionError()
-
+            
         if cipherSuite in CipherSuite.shaSuites:
             macLength = 20
-            digestmod = hashlib.sha1
+            digestmod = hashlib.sha1        
         elif cipherSuite in CipherSuite.md5Suites:
             macLength = 16
             digestmod = hashlib.md5
@@ -1140,3 +1151,4 @@ class TLSRecordLayer(object):
                          bytearray(imac_sha.digest()))
 
         return md5Bytes + shaBytes
+

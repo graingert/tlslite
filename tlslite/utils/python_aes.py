@@ -8,10 +8,8 @@ from .cryptomath import *
 from .aes import *
 from .rijndael import rijndael
 
-
 def new(key, mode, IV):
     return Python_AES(key, mode, IV)
-
 
 class Python_AES(AES):
     def __init__(self, key, mode, IV):

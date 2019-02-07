@@ -1,4 +1,4 @@
-# Authors:
+# Authors: 
 #   Trevor Perrin
 #   Google - parsing subject field
 #
@@ -106,3 +106,5 @@ class X509(object):
 
     def writeBytes(self):
         return self.bytes
+
+

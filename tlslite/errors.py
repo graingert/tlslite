@@ -1,4 +1,4 @@
-# Authors:
+# Authors: 
 #   Trevor Perrin
 #   Dave Baggett (Arcode Corporation) - Added TLSUnsupportedError.
 #
@@ -17,16 +17,14 @@ from .constants import AlertDescription
 
 class TLSError(Exception):
     """Base class for all TLS Lite exceptions."""
-
+    
     def __str__(self):
         """"At least print out the Exception time for str(...)."""
-        return repr(self)
-
+        return repr(self)    
 
 class TLSClosedConnectionError(TLSError, socket.error):
     """An attempt was made to use the connection after it was closed."""
     pass
-
 
 class TLSAbruptCloseError(TLSError):
     """The socket was closed without a proper TLS shutdown.
@@ -38,7 +36,6 @@ class TLSAbruptCloseError(TLSError):
     TLS implementation, or a random network failure.
     """
     pass
-
 
 class TLSAlert(TLSError):
     """A TLS alert has been signalled."""
@@ -71,7 +68,6 @@ class TLSAlert(TLSError):
         AlertDescription.no_renegotiation: "no_renegotiation",\
         AlertDescription.unknown_psk_identity: "unknown_psk_identity"}
 
-
 class TLSLocalAlert(TLSAlert):
     """A TLS alert has been signalled by the local implementation.
 
@@ -86,7 +82,6 @@ class TLSLocalAlert(TLSAlert):
     @type message: str
     @ivar message: Description of what went wrong.
     """
-
     def __init__(self, alert, message=None):
         self.description = alert.description
         self.level = alert.level
@@ -101,7 +96,6 @@ class TLSLocalAlert(TLSAlert):
         else:
             return alertStr
 
-
 class TLSRemoteAlert(TLSAlert):
     """A TLS alert has been signalled by the remote implementation.
 
@@ -113,7 +107,6 @@ class TLSRemoteAlert(TLSAlert):
     @ivar level: Set to one of the constants in
     L{tlslite.constants.AlertLevel}
     """
-
     def __init__(self, alert):
         self.description = alert.description
         self.level = alert.level
@@ -123,7 +116,6 @@ class TLSRemoteAlert(TLSAlert):
         if alertStr == None:
             alertStr = str(self.description)
         return alertStr
-
 
 class TLSAuthenticationError(TLSError):
     """The handshake succeeded, but the other party's authentication
@@ -137,40 +129,33 @@ class TLSAuthenticationError(TLSError):
     """
     pass
 
-
 class TLSNoAuthenticationError(TLSAuthenticationError):
     """The Checker was expecting the other party to authenticate with a
     certificate chain, but this did not occur."""
     pass
-
 
 class TLSAuthenticationTypeError(TLSAuthenticationError):
     """The Checker was expecting the other party to authenticate with a
     different type of certificate chain."""
     pass
 
-
 class TLSFingerprintError(TLSAuthenticationError):
     """The Checker was expecting the other party to authenticate with a
     certificate chain that matches a different fingerprint."""
     pass
-
 
 class TLSAuthorizationError(TLSAuthenticationError):
     """The Checker was expecting the other party to authenticate with a
     certificate chain that has a different authorization."""
     pass
 
-
 class TLSValidationError(TLSAuthenticationError):
     """The Checker has determined that the other party's certificate
     chain is invalid."""
-
     def __init__(self, msg, info=None):
         # Include a dict containing info about this validation failure
         TLSAuthenticationError.__init__(self, msg)
         self.info = info
-
 
 class TLSFaultError(TLSError):
     """The other party responded incorrectly to an induced fault.

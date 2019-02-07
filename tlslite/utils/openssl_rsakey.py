@@ -11,8 +11,6 @@ from .rsakey import *
 
 #copied from M2Crypto.util.py, so when we load the local copy of m2
 #we can still use it
-
-
 def password_callback(v, prompt1='Enter private key passphrase:',
                            prompt2='Verify passphrase:'):
     from getpass import getpass
@@ -93,7 +91,6 @@ if m2cryptoLoaded:
 
         def generate(bits):
             key = OpenSSL_RSAKey()
-
             def f():pass
             key.rsa = m2.rsa_generate_key(bits, 3, f)
             key._hasPrivateKey = True
@@ -105,7 +102,7 @@ if m2cryptoLoaded:
             start = s.find("-----BEGIN ")
             if start == -1:
                 raise SyntaxError()
-            s = s[start:]
+            s = s[start:]            
             if s.startswith("-----BEGIN "):
                 if passwordCallback==None:
                     callback = password_callback

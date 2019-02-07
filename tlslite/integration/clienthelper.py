@@ -1,4 +1,4 @@
-# Authors:
+# Authors: 
 #   Trevor Perrin
 #   Dimitris Moraitis - Anon ciphersuites
 #
@@ -8,8 +8,8 @@
 A helper class for using TLS Lite with stdlib clients
 (httplib, xmlrpclib, imaplib, poplib).
 """
-from tlslite.checker import Checker
 
+from tlslite.checker import Checker
 
 class ClientHelper(object):
     """This is a helper class used to integrate TLS Lite with various
@@ -19,8 +19,8 @@ class ClientHelper(object):
               username=None, password=None,
               certChain=None, privateKey=None,
               checker=None,
-              settings=None,
-              anon=False):
+              settings = None, 
+              anon = False):
         """
         For client authentication, use one of these argument
         combinations:
@@ -61,7 +61,7 @@ class ClientHelper(object):
         Requires the 'certChain' argument.  Excludes the SRP arguments.
 
         @type checker: L{tlslite.checker.Checker}
-        @param checker: Callable object called after handshaking to
+        @param checker: Callable object called after handshaking to 
         evaluate the connection and raise an Exception if necessary.
 
         @type settings: L{tlslite.handshakesettings.HandshakeSettings}

@@ -5,8 +5,6 @@ import os
 
 #Functions for manipulating datetime objects
 #CCYY-MM-DDThh:mm:ssZ
-
-
 def parseDateClass(s):
     year, month, day = s.split("-")
     day, tail = day[:2], day[2:]

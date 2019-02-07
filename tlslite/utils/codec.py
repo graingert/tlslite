@@ -5,7 +5,6 @@
 
 from .compat import *
 
-
 class Writer(object):
     def __init__(self):
         self.bytes = bytearray(0)
@@ -26,7 +25,6 @@ class Writer(object):
         self.add(len(seq)*length, lengthLength)
         for e in seq:
             self.add(e, length)
-
 
 class Parser(object):
     def __init__(self, bytes):
