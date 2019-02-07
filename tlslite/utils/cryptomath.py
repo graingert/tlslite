@@ -1,4 +1,4 @@
-# Authors: 
+# Authors:
 #   Trevor Perrin
 #   Martin von Loewis - python 3 port
 #
@@ -10,8 +10,6 @@ This module has basic math/crypto code."""
 from __future__ import print_function
 import os
 import math
-import base64
-import binascii
 
 from .compat import *
 
@@ -52,6 +50,7 @@ import zlib
 length = len(zlib.compress(os.urandom(1000)))
 assert(length > 900)
 
+
 def getRandomBytes(howMany):
     b = bytearray(os.urandom(howMany))
     assert(len(b) == howMany)
@@ -66,16 +65,20 @@ prngName = "os.urandom"
 import hmac
 import hashlib
 
+
 def MD5(b):
     return bytearray(hashlib.md5(compat26Str(b)).digest())
 
+
 def SHA1(b):
     return bytearray(hashlib.sha1(compat26Str(b)).digest())
+
 
 def HMAC_MD5(k, b):
     k = compatHMAC(k)
     b = compatHMAC(b)
     return bytearray(hmac.new(k, b, hashlib.md5).digest())
+
 
 def HMAC_SHA1(k, b):
     k = compatHMAC(k)
@@ -96,13 +99,14 @@ def bytesToNumber(b):
         multiplier *= 256
     return total
 
+
 def numberToByteArray(n, howManyBytes=None):
     """Convert an integer into a bytearray, zero-pad to howManyBytes.
 
     The returned bytearray may be smaller than howManyBytes, but will
     not be larger.  The returned bytearray will contain a big-endian
     encoding of the input integer (n).
-    """    
+    """
     if howManyBytes == None:
         howManyBytes = numBytes(n)
     b = bytearray(howManyBytes)
@@ -111,11 +115,13 @@ def numberToByteArray(n, howManyBytes=None):
         n >>= 8
     return b
 
+
 def mpiToNumber(mpi): #mpi is an openssl-format bignum string
     if (ord(mpi[4]) & 0x80) !=0: #Make sure this is a positive number
         raise AssertionError()
     b = bytearray(mpi[4:])
     return bytesToNumber(b)
+
 
 def numberToMPI(n):
     b = numberToByteArray(n)
@@ -149,6 +155,7 @@ def numBits(n):
      }[s[0]]
     return int(math.floor(math.log(n, 2))+1)
 
+
 def numBytes(n):
     if n==0:
         return 0
@@ -158,6 +165,7 @@ def numBytes(n):
 # **************************************************************************
 # Big Number Math
 # **************************************************************************
+
 
 def getRandomNumber(low, high):
     if low >= high:
@@ -173,17 +181,21 @@ def getRandomNumber(low, high):
         if n >= low and n < high:
             return n
 
+
 def gcd(a,b):
     a, b = max(a,b), min(a,b)
     while b:
         a, b = b, a % b
     return a
 
+
 def lcm(a, b):
     return (a * b) // gcd(a, b)
 
 #Returns inverse of a mod b, zero if none
 #Uses Extended Euclidean Algorithm
+
+
 def invMod(a, b):
     c, d = a, b
     uc, ud = 1, 0
@@ -214,6 +226,8 @@ else:
             return pow(base, power, modulus)
 
 #Pre-calculate a sieve of the ~100 primes < 1000:
+
+
 def makeSieve(n):
     sieve = list(range(n))
     for count in range(2, int(math.sqrt(n))):
@@ -227,6 +241,7 @@ def makeSieve(n):
     return sieve
 
 sieve = makeSieve(1000)
+
 
 def isPrime(n, iterations=5, display=False):
     #Trial division with sieve
@@ -255,6 +270,7 @@ def isPrime(n, iterations=5, display=False):
         a = getRandomNumber(2, n)
     return True
 
+
 def getRandomPrime(bits, display=False):
     if bits < 10:
         raise AssertionError()
@@ -277,6 +293,8 @@ def getRandomPrime(bits, display=False):
             return p
 
 #Unused at the moment...
+
+
 def getRandomSafePrime(bits, display=False):
     if bits < 10:
         raise AssertionError()

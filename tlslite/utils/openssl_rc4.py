@@ -7,12 +7,10 @@ from .cryptomath import *
 from .rc4 import RC4
 
 if m2cryptoLoaded:
-
     def new(key):
         return OpenSSL_RC4(key)
 
     class OpenSSL_RC4(RC4):
-
         def __init__(self, key):
             RC4.__init__(self, key, "openssl")
             self.rc4 = m2.rc4_new()

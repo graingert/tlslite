@@ -7,6 +7,7 @@ from smtplib import SMTP
 from tlslite.tlsconnection import TLSConnection
 from tlslite.integration.clienthelper import ClientHelper
 
+
 class SMTP_TLS(SMTP):
     """This class extends L{smtplib.SMTP} with TLS support."""
 
@@ -67,7 +68,7 @@ class SMTP_TLS(SMTP):
         (resp, reply) = self.docmd("STARTTLS")
         if resp == 220:
             helper = ClientHelper(
-                     username, password, 
+                     username, password,
                      certChain, privateKey,
                      checker,
                      settings)

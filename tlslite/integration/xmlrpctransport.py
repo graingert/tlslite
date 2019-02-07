@@ -1,4 +1,4 @@
-# Authors: 
+# Authors:
 #   Trevor Perrin
 #   Kees Bos - Fixes for compatibility with different Python versions
 #   Martin von Loewis - python 3 port
@@ -17,7 +17,6 @@ except ImportError:
     from http import client as httplib
 from tlslite.integration.httptlsconnection import HTTPTLSConnection
 from tlslite.integration.clienthelper import ClientHelper
-import tlslite.errors
 
 
 class XMLRPCTransport(xmlrpclib.Transport, ClientHelper):
@@ -38,7 +37,6 @@ class XMLRPCTransport(xmlrpclib.Transport, ClientHelper):
 
         An instance of this class can be passed to L{xmlrpclib.ServerProxy}
         to use TLS with XML-RPC calls::
-
             from tlslite import XMLRPCTransport
             from xmlrpclib import ServerProxy
 
@@ -85,7 +83,7 @@ class XMLRPCTransport(xmlrpclib.Transport, ClientHelper):
         Requires the 'certChain' argument.  Excludes the SRP arguments.
 
         @type checker: L{tlslite.checker.Checker}
-        @param checker: Callable object called after handshaking to 
+        @param checker: Callable object called after handshaking to
         evaluate the connection and raise an Exception if necessary.
 
         @type settings: L{tlslite.handshakesettings.HandshakeSettings}
@@ -94,7 +92,7 @@ class XMLRPCTransport(xmlrpclib.Transport, ClientHelper):
         offered by the client.
 
         @type ignoreAbruptClose: bool
-        @param ignoreAbruptClose: ignore the TLSAbruptCloseError on 
+        @param ignoreAbruptClose: ignore the TLSAbruptCloseError on
         unexpected hangup.
         """
 
@@ -104,7 +102,7 @@ class XMLRPCTransport(xmlrpclib.Transport, ClientHelper):
         xmlrpclib.Transport.__init__(self, use_datetime)
         self.ignoreAbruptClose = ignoreAbruptClose
         ClientHelper.__init__(self,
-                 username, password, 
+                 username, password,
                  certChain, privateKey,
                  checker,
                  settings)

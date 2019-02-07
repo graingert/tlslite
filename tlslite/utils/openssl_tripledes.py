@@ -7,12 +7,10 @@ from .cryptomath import *
 from .tripledes import *
 
 if m2cryptoLoaded:
-
     def new(key, mode, IV):
         return OpenSSL_TripleDES(key, mode, IV)
 
     class OpenSSL_TripleDES(TripleDES):
-
         def __init__(self, key, mode, IV):
             TripleDES.__init__(self, key, mode, IV, "openssl")
             self.key = key

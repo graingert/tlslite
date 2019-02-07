@@ -3,6 +3,7 @@
 
 """Abstract class for 3DES."""
 
+
 class TripleDES(object):
     def __init__(self, key, mode, IV, implementation):
         if len(key) != 24:

@@ -5,6 +5,8 @@ import os
 
 #Functions for manipulating datetime objects
 #CCYY-MM-DDThh:mm:ssZ
+
+
 def parseDateClass(s):
     year, month, day = s.split("-")
     day, tail = day[:2], day[2:]
@@ -45,7 +47,6 @@ else:
     #Jython 2.1 is missing lots of python 2.3 stuff,
     #which we have to emulate here:
     import java
-    import jarray
 
     def createDateClass(year, month, day, hour, minute, second):
         c = java.util.Calendar.getInstance()

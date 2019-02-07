@@ -5,6 +5,7 @@
 A state machine for using TLS Lite with asynchronous I/O.
 """
 
+
 class AsyncStateMachine:
     """
     This is an abstract class that's used to integrate TLS Lite with
@@ -235,4 +236,3 @@ class AsyncStateMachine:
         except:
             self._clear()
             raise
-

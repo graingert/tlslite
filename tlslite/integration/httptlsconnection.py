@@ -1,4 +1,4 @@
-# Authors: 
+# Authors:
 #   Trevor Perrin
 #   Kees Bos - Added ignoreAbruptClose parameter
 #   Dimitris Moraitis - Anon ciphersuites
@@ -21,14 +21,14 @@ from tlslite.integration.clienthelper import ClientHelper
 class HTTPTLSConnection(httplib.HTTPConnection, ClientHelper):
     """This class extends L{httplib.HTTPConnection} to support TLS."""
 
-    def __init__(self, host, port=None, strict=None, 
+    def __init__(self, host, port=None, strict=None,
                 timeout=socket._GLOBAL_DEFAULT_TIMEOUT,
                 source_address=None,
                 username=None, password=None,
                 certChain=None, privateKey=None,
                 checker=None,
                 settings=None,
-                ignoreAbruptClose=False, 
+                ignoreAbruptClose=False,
                 anon=False):
         """Create a new HTTPTLSConnection.
 
@@ -99,10 +99,10 @@ class HTTPTLSConnection(httplib.HTTPConnection, ClientHelper):
                                             timeout)
         self.ignoreAbruptClose = ignoreAbruptClose
         ClientHelper.__init__(self,
-                 username, password, 
+                 username, password,
                  certChain, privateKey,
                  checker,
-                 settings, 
+                 settings,
                  anon)
 
     def connect(self):

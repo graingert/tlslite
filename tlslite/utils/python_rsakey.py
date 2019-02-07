@@ -8,6 +8,7 @@ from .asn1parser import ASN1Parser
 from .rsakey import *
 from .pem import *
 
+
 class Python_RSAKey(RSAKey):
     def __init__(self, n=0, e=0, d=0, p=0, q=0, dP=0, dQ=0, qInv=0):
         if (n and not e) or (e and not n):
@@ -48,7 +49,6 @@ class Python_RSAKey(RSAKey):
 
         #Return the output
         return c
-
 
     def _rawPrivateKeyOpHelper(self, m):
         #Non-CRT version

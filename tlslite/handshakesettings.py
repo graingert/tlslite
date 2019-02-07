@@ -1,4 +1,4 @@
-# Authors: 
+# Authors:
 #   Trevor Perrin
 #   Dave Baggett (Arcode Corporation) - cleanup handling of constants
 #
@@ -16,6 +16,7 @@ CIPHER_NAMES = ["rc4", "aes256", "aes128", "3des"]
 MAC_NAMES = ["sha"] # "md5" is allowed
 CIPHER_IMPLEMENTATIONS = ["openssl", "pycrypto", "python"]
 CERTIFICATE_TYPES = ["x509"]
+
 
 class HandshakeSettings(object):
     """This class encapsulates various parameters that can be used with
@@ -97,6 +98,7 @@ class HandshakeSettings(object):
     Note that TACK support is not standardized by IETF and uses a temporary
     TLS Extension number, so should NOT be used in production software.
     """
+
     def __init__(self):
         self.minKeySize = 1023
         self.maxKeySize = 8193

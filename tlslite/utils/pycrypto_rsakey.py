@@ -6,10 +6,8 @@
 from .cryptomath import *
 
 from .rsakey import *
-from .python_rsakey import Python_RSAKey
 
 if pycryptoLoaded:
-
     from Crypto.PublicKey import RSA
 
     class PyCrypto_RSAKey(RSAKey):
@@ -37,6 +35,7 @@ if pycryptoLoaded:
 
         def generate(bits):
             key = PyCrypto_RSAKey()
+
             def f(numBytes):
                 return bytes(getRandomBytes(numBytes))
             key.rsa = RSA.generate(bits, f)

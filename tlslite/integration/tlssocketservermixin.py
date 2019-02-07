@@ -5,6 +5,7 @@
 
 from tlslite.tlsconnection import TLSConnection
 
+
 class TLSSocketServerMixIn:
     """
     This class can be mixed in with any L{SocketServer.TCPServer} to
@@ -48,7 +49,6 @@ class TLSSocketServerMixIn:
         httpd = MyHTTPServer(('localhost', 443), SimpleHTTPRequestHandler)
         httpd.serve_forever()
     """
-
 
     def finish_request(self, sock, client_address):
         tlsConnection = TLSConnection(sock)

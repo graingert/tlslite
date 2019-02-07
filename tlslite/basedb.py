@@ -1,4 +1,4 @@
-# Authors: 
+# Authors:
 #   Trevor Perrin
 #   Martin von Loewis - python 3 port
 #
@@ -12,6 +12,7 @@ except ImportError:
     # Python 3
     import dbm as anydbm
 import threading
+
 
 class BaseDB(object):
     def __init__(self, filename, type):
@@ -104,7 +105,7 @@ class BaseDB(object):
 
         self.lock.acquire()
         try:
-            return self.db.has_key(username)
+            return username in self.db
         finally:
             self.lock.release()
 

@@ -3,13 +3,16 @@
 
 """OpenSSL/M2Crypto RSA implementation."""
 
+import re
+
 from .cryptomath import *
 
 from .rsakey import *
-from .python_rsakey import Python_RSAKey
 
 #copied from M2Crypto.util.py, so when we load the local copy of m2
 #we can still use it
+
+
 def password_callback(v, prompt1='Enter private key passphrase:',
                            prompt2='Verify passphrase:'):
     from getpass import getpass
@@ -36,8 +39,7 @@ if m2cryptoLoaded:
                 raise AssertionError()
             if n and e:
                 self.rsa = m2.rsa_new()
-                m2.rsa_set_n(self.rsa, numberToMPI(n))
-                m2.rsa_set_e(self.rsa, numberToMPI(e))
+                m2.rsa_set_en(self.rsa, numberToMPI(e), numberToMPI(n))
 
         def __del__(self):
             if self.rsa:
@@ -91,6 +93,7 @@ if m2cryptoLoaded:
 
         def generate(bits):
             key = OpenSSL_RSAKey()
+
             def f():pass
             key.rsa = m2.rsa_generate_key(bits, 3, f)
             key._hasPrivateKey = True
@@ -102,7 +105,7 @@ if m2cryptoLoaded:
             start = s.find("-----BEGIN ")
             if start == -1:
                 raise SyntaxError()
-            s = s[start:]            
+            s = s[start:]
             if s.startswith("-----BEGIN "):
                 if passwordCallback==None:
                     callback = password_callback
@@ -114,13 +117,13 @@ if m2cryptoLoaded:
                 try:
                     m2.bio_write(bio, s)
                     key = OpenSSL_RSAKey()
-                    if s.startswith("-----BEGIN RSA PRIVATE KEY-----"):
+                    if re.match('^-----BEGIN (?:RSA )?PRIVATE KEY-----', s):
                         def f():pass
                         key.rsa = m2.rsa_read_key(bio, callback)
                         if key.rsa == None:
                             raise SyntaxError()
                         key._hasPrivateKey = True
-                    elif s.startswith("-----BEGIN PUBLIC KEY-----"):
+                    elif re.match('^-----BEGIN (?:RSA )?PUBLIC KEY-----', s):
                         key.rsa = m2.rsa_read_pub_key(bio)
                         if key.rsa == None:
                             raise SyntaxError()
