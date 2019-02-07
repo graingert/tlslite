@@ -4,6 +4,7 @@
 #   Google (adapted by Sam Rushing) - NPN support
 #   Dimitris Moraitis - Anon ciphersuites
 #   Dave Baggett (Arcode Corporation) - canonicalCipherName
+#   Yngve Pettersen (ported by Paul Sokolovsky) - TLS 1.2
 #
 # See the LICENSE file for legal information regarding use of this file.
 
@@ -45,6 +46,20 @@ class ExtensionType:    # RFC 6066 / 4366
     cert_type = 9       # RFC 6091
     tack = 0xF300
     supports_npn = 13172
+
+class HashAlgorithm:
+    none = 0
+    md5 = 1
+    sha1 = 2
+    sha224 = 3
+    sha256 = 4
+    sha384 = 5
+
+class SignatureAlgorithm:
+    anonymous = 0
+    rsa = 1
+    dsa = 2
+    ecdsa = 3
     
 class NameType:
     host_name = 0
@@ -103,6 +118,7 @@ class AlertDescription:
     protocol_version = 70
     insufficient_security = 71
     internal_error = 80
+    inappropriate_fallback = 86
     user_canceled = 90
     no_renegotiation = 100
     unknown_psk_identity = 115
@@ -114,6 +130,9 @@ class CipherSuite:
     # We actually don't do any renegotiation, but this
     # prevents renegotiation attacks
     TLS_EMPTY_RENEGOTIATION_INFO_SCSV = 0x00FF
+
+    # draft-ietf-tls-downgrade-scsv-03
+    TLS_FALLBACK_SCSV = 0x5600
     
     TLS_SRP_SHA_WITH_3DES_EDE_CBC_SHA  = 0xC01A
     TLS_SRP_SHA_WITH_AES_128_CBC_SHA = 0xC01D
@@ -134,6 +153,9 @@ class CipherSuite:
     TLS_DH_ANON_WITH_AES_128_CBC_SHA = 0x0034
     TLS_DH_ANON_WITH_AES_256_CBC_SHA = 0x003A
 
+    TLS_RSA_WITH_AES_128_CBC_SHA256 = 0x003C
+    TLS_RSA_WITH_AES_256_CBC_SHA256 = 0x003D
+
     tripleDESSuites = []
     tripleDESSuites.append(TLS_SRP_SHA_WITH_3DES_EDE_CBC_SHA)
     tripleDESSuites.append(TLS_SRP_SHA_RSA_WITH_3DES_EDE_CBC_SHA)
@@ -144,12 +166,14 @@ class CipherSuite:
     aes128Suites.append(TLS_SRP_SHA_RSA_WITH_AES_128_CBC_SHA)
     aes128Suites.append(TLS_RSA_WITH_AES_128_CBC_SHA)
     aes128Suites.append(TLS_DH_ANON_WITH_AES_128_CBC_SHA)
+    aes128Suites.append(TLS_RSA_WITH_AES_128_CBC_SHA256)
 
     aes256Suites = []
     aes256Suites.append(TLS_SRP_SHA_WITH_AES_256_CBC_SHA)
     aes256Suites.append(TLS_SRP_SHA_RSA_WITH_AES_256_CBC_SHA)
     aes256Suites.append(TLS_RSA_WITH_AES_256_CBC_SHA)
     aes256Suites.append(TLS_DH_ANON_WITH_AES_256_CBC_SHA)
+    aes256Suites.append(TLS_RSA_WITH_AES_256_CBC_SHA256)
 
     rc4Suites = []
     rc4Suites.append(TLS_RSA_WITH_RC4_128_SHA)
@@ -169,8 +193,21 @@ class CipherSuite:
     shaSuites.append(TLS_DH_ANON_WITH_AES_128_CBC_SHA)
     shaSuites.append(TLS_DH_ANON_WITH_AES_256_CBC_SHA)
     
+    sha256Suites = []
+    sha256Suites.append(TLS_RSA_WITH_AES_128_CBC_SHA256)
+    sha256Suites.append(TLS_RSA_WITH_AES_256_CBC_SHA256)
+
     md5Suites = []
     md5Suites.append(TLS_RSA_WITH_RC4_128_MD5)
+
+    @staticmethod
+    def filterForVersion(suites, minVersion, maxVersion):
+        """ Returns a copy of suites after removing any entries which are not
+        enabled by any version of TLS between minVersion and maxVersion. """
+        excludeSuites = []
+        if maxVersion < (3, 3):
+            excludeSuites += CipherSuite.sha256Suites
+        return [s for s in suites if s not in excludeSuites]
 
     @staticmethod
     def _filterSuites(suites, settings):
@@ -179,6 +216,8 @@ class CipherSuite:
         macSuites = []
         if "sha" in macNames:
             macSuites += CipherSuite.shaSuites
+        if "sha256" in macNames:
+            macSuites += CipherSuite.sha256Suites
         if "md5" in macNames:
             macSuites += CipherSuite.md5Suites
 
@@ -195,18 +234,18 @@ class CipherSuite:
         return [s for s in suites if s in macSuites and s in cipherSuites]
 
     srpSuites = []
-    srpSuites.append(TLS_SRP_SHA_WITH_3DES_EDE_CBC_SHA)
-    srpSuites.append(TLS_SRP_SHA_WITH_AES_128_CBC_SHA)
     srpSuites.append(TLS_SRP_SHA_WITH_AES_256_CBC_SHA)
+    srpSuites.append(TLS_SRP_SHA_WITH_AES_128_CBC_SHA)
+    srpSuites.append(TLS_SRP_SHA_WITH_3DES_EDE_CBC_SHA)
     
     @staticmethod
     def getSrpSuites(settings):
         return CipherSuite._filterSuites(CipherSuite.srpSuites, settings)
 
     srpCertSuites = []
-    srpCertSuites.append(TLS_SRP_SHA_RSA_WITH_3DES_EDE_CBC_SHA)
-    srpCertSuites.append(TLS_SRP_SHA_RSA_WITH_AES_128_CBC_SHA)
     srpCertSuites.append(TLS_SRP_SHA_RSA_WITH_AES_256_CBC_SHA)
+    srpCertSuites.append(TLS_SRP_SHA_RSA_WITH_AES_128_CBC_SHA)
+    srpCertSuites.append(TLS_SRP_SHA_RSA_WITH_3DES_EDE_CBC_SHA)
     
     @staticmethod
     def getSrpCertSuites(settings):
@@ -219,9 +258,11 @@ class CipherSuite:
         return CipherSuite._filterSuites(CipherSuite.srpAllSuites, settings)
 
     certSuites = []
-    certSuites.append(TLS_RSA_WITH_3DES_EDE_CBC_SHA)
-    certSuites.append(TLS_RSA_WITH_AES_128_CBC_SHA)
+    certSuites.append(TLS_RSA_WITH_AES_256_CBC_SHA256)
+    certSuites.append(TLS_RSA_WITH_AES_128_CBC_SHA256)
     certSuites.append(TLS_RSA_WITH_AES_256_CBC_SHA)
+    certSuites.append(TLS_RSA_WITH_AES_128_CBC_SHA)
+    certSuites.append(TLS_RSA_WITH_3DES_EDE_CBC_SHA)
     certSuites.append(TLS_RSA_WITH_RC4_128_SHA)
     certSuites.append(TLS_RSA_WITH_RC4_128_MD5)
     certAllSuites = srpCertSuites + certSuites
@@ -231,8 +272,8 @@ class CipherSuite:
         return CipherSuite._filterSuites(CipherSuite.certSuites, settings)
 
     anonSuites = []
-    anonSuites.append(TLS_DH_ANON_WITH_AES_128_CBC_SHA)
     anonSuites.append(TLS_DH_ANON_WITH_AES_256_CBC_SHA)
+    anonSuites.append(TLS_DH_ANON_WITH_AES_128_CBC_SHA)
     
     @staticmethod
     def getAnonSuites(settings):
@@ -287,6 +328,8 @@ class Fault:
     badPadding = 302
     genericFaults = list(range(300,303))
 
+    ignoreVersionForCipher = 400
+
     faultAlerts = {\
         badUsername: (AlertDescription.unknown_psk_identity, \
                       AlertDescription.bad_record_mac),\
@@ -297,7 +340,9 @@ class Fault:
         badVerifyMessage: (AlertDescription.decrypt_error,),\
         badFinished: (AlertDescription.decrypt_error,),\
         badMAC: (AlertDescription.bad_record_mac,),\
-        badPadding: (AlertDescription.bad_record_mac,)
+        badPadding: (AlertDescription.bad_record_mac,),\
+        ignoreVersionForCipher: (AlertDescription.illegal_parameter,\
+                                 AlertDescription.handshake_failure)
         }
 
     faultNames = {\
@@ -309,5 +354,6 @@ class Fault:
         badVerifyMessage: "bad verify message",\
         badFinished: "bad finished message",\
         badMAC: "bad MAC",\
-        badPadding: "bad padding"
+        badPadding: "bad padding",\
+        ignoreVersionForCipher: "ignore version for cipher"
         }

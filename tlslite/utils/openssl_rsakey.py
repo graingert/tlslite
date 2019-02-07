@@ -114,13 +114,31 @@ if m2cryptoLoaded:
                 try:
                     m2.bio_write(bio, s)
                     key = OpenSSL_RSAKey()
-                    if re.match('^-----BEGIN (?:RSA )?PRIVATE KEY-----', s):
+                    # parse SSLay format PEM file
+                    if s.startswith("-----BEGIN RSA PRIVATE KEY-----"):
                         def f():pass
                         key.rsa = m2.rsa_read_key(bio, callback)
                         if key.rsa == None:
                             raise SyntaxError()
                         key._hasPrivateKey = True
-                    elif re.match('^-----BEGIN (?:RSA )?PUBLIC KEY-----', s):
+                    # parse a standard PKCS#8 PEM file
+                    elif s.startswith("-----BEGIN PRIVATE KEY-----"):
+                        def f():pass
+                        key.rsa = m2.pkey_read_pem(bio, callback)
+                        # the below code assumes RSA key while PKCS#8 files
+                        # (and by extension the EVP_PKEY structure) can be
+                        # also DSA or EC, thus the double check against None
+                        # (first if the file was properly loaded and second
+                        # if the file actually has a RSA key in it)
+                        # tlslite doesn't support DSA or EC so it's useless
+                        # to handle them in a different way
+                        if key.rsa == None:
+                            raise SyntaxError()
+                        key.rsa = m2.pkey_get1_rsa(key.rsa)
+                        if key.rsa == None:
+                            raise SyntaxError()
+                        key._hasPrivateKey = True
+                    elif s.startswith("-----BEGIN PUBLIC KEY-----"):
                         key.rsa = m2.rsa_read_pub_key(bio)
                         if key.rsa == None:
                             raise SyntaxError()

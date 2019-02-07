@@ -43,11 +43,11 @@ if sys.version_info >= (3,0):
     def b2a_base64(b):
         return binascii.b2a_base64(b).decode("ascii") 
 
-    def b2a_base32(b):
-        return base64.b32encode(b).decode("ascii")
-        
     def readStdinBinary():
         return sys.stdin.buffer.read()        
+
+    def compatLong(num):
+        return int(num)
 
 else:
     # Python 2.6 requires strings instead of bytearrays in a couple places,
@@ -80,10 +80,10 @@ else:
         
     def b2a_base64(b):
         return binascii.b2a_base64(compat26Str(b))
-        
-    def b2a_base32(b):
-        return base64.b32encode(str(b))
 
+    def compatLong(num):
+        return long(num)
+        
 import traceback
 def formatExceptionTrace(e):
     newStr = "".join(traceback.format_exception(sys.exc_type, sys.exc_value, sys.exc_traceback))

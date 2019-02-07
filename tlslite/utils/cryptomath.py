@@ -1,6 +1,7 @@
 # Authors: 
 #   Trevor Perrin
 #   Martin von Loewis - python 3 port
+#   Yngve Pettersen (ported by Paul Sokolovsky) - TLS 1.2
 #
 # See the LICENSE file for legal information regarding use of this file.
 
@@ -49,6 +50,7 @@ except ImportError:
 import zlib
 length = len(zlib.compress(os.urandom(1000)))
 assert(length > 900)
+del length
 
 def getRandomBytes(howMany):
     b = bytearray(os.urandom(howMany))
@@ -80,6 +82,10 @@ def HMAC_SHA1(k, b):
     b = compatHMAC(b)
     return bytearray(hmac.new(k, b, hashlib.sha1).digest())
 
+def HMAC_SHA256(k, b):
+    k = compatHMAC(k)
+    b = compatHMAC(b)
+    return bytearray(hmac.new(k, b, hashlib.sha256).digest())
 
 # **************************************************************************
 # Converter Functions
@@ -200,7 +206,7 @@ if gmpyLoaded:
         power = gmpy.mpz(power)
         modulus = gmpy.mpz(modulus)
         result = pow(base, power, modulus)
-        return long(result)
+        return compatLong(result)
 
 else:
     def powMod(base, power, modulus):
@@ -214,7 +220,7 @@ else:
 #Pre-calculate a sieve of the ~100 primes < 1000:
 def makeSieve(n):
     sieve = list(range(n))
-    for count in range(2, int(math.sqrt(n))):
+    for count in range(2, int(math.sqrt(n))+1):
         if sieve[count] == 0:
             continue
         x = sieve[count] * 2
@@ -224,9 +230,7 @@ def makeSieve(n):
     sieve = [x for x in sieve[2:] if x]
     return sieve
 
-sieve = makeSieve(1000)
-
-def isPrime(n, iterations=5, display=False):
+def isPrime(n, iterations=5, display=False, sieve=makeSieve(1000)):
     #Trial division with sieve
     for x in sieve:
         if x >= n: return True

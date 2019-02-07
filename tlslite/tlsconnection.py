@@ -2,8 +2,10 @@
 #   Trevor Perrin
 #   Google - added reqCAs parameter
 #   Google (adapted by Sam Rushing and Marcelo Fernandez) - NPN support
+#   Google - FALLBACK_SCSV
 #   Dimitris Moraitis - Anon ciphersuites
 #   Martin von Loewis - python 3 port
+#   Yngve Pettersen (ported by Paul Sokolovsky) - TLS 1.2
 #
 # See the LICENSE file for legal information regarding use of this file.
 
@@ -20,6 +22,7 @@ from .messages import *
 from .mathtls import *
 from .handshakesettings import HandshakeSettings
 from .utils.tackwrapper import *
+from .utils.rsakey import RSAKey
 
 
 class TLSConnection(TLSRecordLayer):
@@ -366,7 +369,7 @@ class TLSConnection(TLSRecordLayer):
         # or crypto libraries that were requested        
         if not settings:
             settings = HandshakeSettings()
-        settings = settings._filter()
+        settings = settings.validate()
 
         if clientCertChain:
             if not isinstance(clientCertChain, X509CertChain):
@@ -503,8 +506,21 @@ class TLSConnection(TLSRecordLayer):
         else:
             assert(False)
 
+        #Don't advertise ciphers that aren't enabled in any versions in the
+        #supported range.
+        if self.fault != Fault.ignoreVersionForCipher:
+            cipherSuites = CipherSuite.filterForVersion(cipherSuites,
+                                                        minVersion=settings.minVersion,
+                                                        maxVersion=settings.maxVersion)
+
+        #Add any SCSVs. These are not real cipher suites, but signaling
+        #values which reuse the cipher suite field in the ClientHello.
+        wireCipherSuites = list(cipherSuites)
+        if settings.sendFallbackSCSV:
+            wireCipherSuites.append(CipherSuite.TLS_FALLBACK_SCSV)
+
         #Initialize acceptable certificate types
-        certificateTypes = settings._getCertificateTypes()
+        certificateTypes = settings.getCertificateTypes()
             
         #Either send ClientHello (with a resumable session)...
         if session and session.sessionID:
@@ -516,7 +532,7 @@ class TLSConnection(TLSRecordLayer):
             else:
                 clientHello = ClientHello()
                 clientHello.create(settings.maxVersion, getRandomBytes(32),
-                                   session.sessionID, cipherSuites,
+                                   session.sessionID, wireCipherSuites,
                                    certificateTypes, 
                                    session.srpUsername,
                                    reqTack, nextProtos is not None,
@@ -526,7 +542,7 @@ class TLSConnection(TLSRecordLayer):
         else:
             clientHello = ClientHello()
             clientHello.create(settings.maxVersion, getRandomBytes(32),
-                               bytearray(0), cipherSuites,
+                               bytearray(0), wireCipherSuites,
                                certificateTypes, 
                                srpUsername,
                                reqTack, nextProtos is not None, 
@@ -561,7 +577,14 @@ class TLSConnection(TLSRecordLayer):
                 AlertDescription.protocol_version,
                 "Too new version: %s" % str(serverHello.server_version)):
                 yield result
-        if serverHello.cipher_suite not in clientHello.cipher_suites:
+        #Re-evaluate supported ciphers against the final protocol version.
+        if self.fault != Fault.ignoreVersionForCipher:
+            cipherSuites = CipherSuite.filterForVersion(clientHello.cipher_suites,
+                                                        minVersion=self.version,
+                                                        maxVersion=self.version)
+        else:
+            cipherSuites = clientHello.cipher_suites
+        if serverHello.cipher_suite not in cipherSuites:
             for result in self._sendError(\
                 AlertDescription.illegal_parameter,
                 "Server responded with incorrect ciphersuite"):
@@ -582,16 +605,16 @@ class TLSConnection(TLSRecordLayer):
                     AlertDescription.illegal_parameter,
                     "Server responded with unrequested Tack Extension"):
                     yield result
-        if serverHello.next_protos and not clientHello.supports_npn:
-            for result in self._sendError(\
-                AlertDescription.illegal_parameter,
-                "Server responded with unrequested NPN Extension"):
-                yield result
             if not serverHello.tackExt.verifySignatures():
                 for result in self._sendError(\
                     AlertDescription.decrypt_error,
                     "TackExtension contains an invalid signature"):
                     yield result
+        if serverHello.next_protos and not clientHello.supports_npn:
+            for result in self._sendError(\
+                AlertDescription.illegal_parameter,
+                "Server responded with unrequested NPN Extension"):
+                yield result
         yield serverHello
 
     def _clientSelectNextProto(self, nextProtos, serverHello):
@@ -849,6 +872,7 @@ class TLSConnection(TLSRecordLayer):
         #If client authentication was requested and we have a
         #private key, send CertificateVerify
         if certificateRequest and privateKey:
+            signatureAlgorithm = None
             if self.version == (3,0):
                 masterSecret = calcMasterSecret(self.version,
                                          premasterSecret,
@@ -858,11 +882,16 @@ class TLSConnection(TLSRecordLayer):
             elif self.version in ((3,1), (3,2)):
                 verifyBytes = self._handshake_md5.digest() + \
                                 self._handshake_sha.digest()
+            elif self.version == (3,3):
+                # TODO: Signature algorithm negotiation not supported.
+                signatureAlgorithm = (HashAlgorithm.sha1, SignatureAlgorithm.rsa)
+                verifyBytes = self._handshake_sha.digest()
+                verifyBytes = RSAKey.addPKCS1SHA1Prefix(verifyBytes)
             if self.fault == Fault.badVerifyMessage:
                 verifyBytes[0] = ((verifyBytes[0]+1) % 256)
             signedBytes = privateKey.sign(verifyBytes)
-            certificateVerify = CertificateVerify()
-            certificateVerify.create(signedBytes)
+            certificateVerify = CertificateVerify(self.version)
+            certificateVerify.create(signatureAlgorithm, signedBytes)
             for result in self._sendMsg(certificateVerify):
                 yield result
         yield (premasterSecret, serverCertChain, clientCertChain, tackExt)
@@ -1104,7 +1133,7 @@ class TLSConnection(TLSRecordLayer):
 
         if not settings:
             settings = HandshakeSettings()
-        settings = settings._filter()
+        settings = settings.validate()
         
         # OK Start exchanging messages
         # ******************************
@@ -1251,6 +1280,20 @@ class TLSConnection(TLSRecordLayer):
         else:
             #Set the version to the client's version
             self.version = clientHello.client_version  
+
+        #Detect if the client performed an inappropriate fallback.
+        if clientHello.client_version < settings.maxVersion and \
+            CipherSuite.TLS_FALLBACK_SCSV in clientHello.cipher_suites:
+            for result in self._sendError(\
+                  AlertDescription.inappropriate_fallback):
+                yield result
+
+        #Now that the version is known, limit to only the ciphers available to
+        #that version.
+        if self.fault != Fault.ignoreVersionForCipher:
+            cipherSuites = CipherSuite.filterForVersion(cipherSuites,
+                                                        minVersion=self.version,
+                                                        maxVersion=self.version)
 
         #If resumption was requested and we have a session cache...
         if clientHello.session_id and sessionCache:
@@ -1433,11 +1476,16 @@ class TLSConnection(TLSRecordLayer):
 
         msgs.append(serverHello)
         msgs.append(Certificate(CertificateType.x509).create(serverCertChain))
-        if reqCert and reqCAs:
-            msgs.append(CertificateRequest().create(\
-                [ClientCertificateType.rsa_sign], reqCAs))
-        elif reqCert:
-            msgs.append(CertificateRequest())
+        if reqCert:
+            #Apple's Secure Transport library rejects empty certificate_types,
+            #and only RSA certificates are supported.
+            reqCAs = reqCAs or []
+            reqCertTypes = [ClientCertificateType.rsa_sign]
+            #Only SHA-1 + RSA is supported.
+            sigAlgs = [(HashAlgorithm.sha1, SignatureAlgorithm.rsa)]
+            msgs.append(CertificateRequest(self.version).create(reqCertTypes,
+                                                                reqCAs,
+                                                                sigAlgs))
         msgs.append(ServerHelloDone())
         for result in self._sendMsgs(msgs):
             yield result
@@ -1470,7 +1518,7 @@ class TLSConnection(TLSRecordLayer):
                         clientCertChain = clientCertificate.certChain
                 else:
                     raise AssertionError()
-            elif self.version in ((3,1), (3,2)):
+            elif self.version in ((3,1), (3,2), (3,3)):
                 for result in self._getMsg(ContentType.handshake,
                                           HandshakeType.certificate,
                                           CertificateType.x509):
@@ -1516,6 +1564,9 @@ class TLSConnection(TLSRecordLayer):
             elif self.version in ((3,1), (3,2)):
                 verifyBytes = self._handshake_md5.digest() + \
                                 self._handshake_sha.digest()
+            elif self.version == (3,3):
+                verifyBytes = self._handshake_sha.digest()
+                verifyBytes = RSAKey.addPKCS1SHA1Prefix(verifyBytes)
             for result in self._getMsg(ContentType.handshake,
                                       HandshakeType.certificate_verify):
                 if result in (0,1): yield result
@@ -1706,33 +1757,41 @@ class TLSConnection(TLSRecordLayer):
                                 self._handshake_sha.digest()
             verifyData = PRF(masterSecret, label, handshakeHashes, 12)
             return verifyData
+        elif self.version == (3,3):
+            if (self._client and send) or (not self._client and not send):
+                label = b"client finished"
+            else:
+                label = b"server finished"
+
+            handshakeHashes = self._handshake_sha256.digest()
+            verifyData = PRF_1_2(masterSecret, label, handshakeHashes, 12)
+            return verifyData
         else:
             raise AssertionError()
 
 
     def _handshakeWrapperAsync(self, handshaker, checker):
-        if not self.fault:
-            try:
-                for result in handshaker:
-                    yield result
-                if checker:
-                    try:
-                        checker(self)
-                    except TLSAuthenticationError:
-                        alert = Alert().create(AlertDescription.close_notify,
-                                               AlertLevel.fatal)
-                        for result in self._sendMsg(alert):
-                            yield result
-                        raise
-            except GeneratorExit:
-                raise
-            except TLSAlert as alert:
-                if not self.fault:
+        try:
+            for result in handshaker:
+                yield result
+            if checker:
+                try:
+                    checker(self)
+                except TLSAuthenticationError:
+                    alert = Alert().create(AlertDescription.close_notify,
+                                           AlertLevel.fatal)
+                    for result in self._sendMsg(alert):
+                        yield result
                     raise
-                if alert.description not in Fault.faultAlerts[self.fault]:
-                    raise TLSFaultError(str(alert))
-                else:
-                    pass
-            except:
-                self._shutdown(False)
+        except GeneratorExit:
+            raise
+        except TLSAlert as alert:
+            if not self.fault:
                 raise
+            if alert.description not in Fault.faultAlerts[self.fault]:
+                raise TLSFaultError(str(alert))
+            else:
+                pass
+        except:
+            self._shutdown(False)
+            raise
